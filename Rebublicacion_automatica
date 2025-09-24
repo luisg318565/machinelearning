@@ -1,0 +1,46 @@
+# -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals
+import arcpy, os, sys, traceback
+
+arcpy.env.overwriteOutput = True
+
+# Después (versión recomendada con /)
+mxd_folder = u"C:/mapas/mxd"
+out_folder = u"C:/salidas/mapas"
+
+def safe_print(s):
+    try:
+        print(s)
+    except Exception:
+        # Por si la consola no soporta el carácter, lo imprime sin romper
+        enc = sys.stdout.encoding or 'utf-8'
+        print(s.encode(enc, 'ignore'))
+
+def export_mxd(mxd_path, out_folder):
+    mxd = arcpy.mapping.MapDocument(mxd_path)
+    base = os.path.splitext(os.path.basename(mxd.filePath))[0]
+    png_out = os.path.join(out_folder, base + u".png")
+    arcpy.mapping.ExportToPNG(mxd, png_out, resolution=350)
+    del mxd
+    return png_out
+
+def main():
+    count_ok = count_err = 0
+    for fname in sorted(os.listdir(mxd_folder)):
+        if not fname.lower().endswith(u".mxd"):
+            continue
+        mxd_path = os.path.join(mxd_folder, fname)
+        try:
+            safe_print(u"Procesando: {}".format(mxd_path))
+            png_out = export_mxd(mxd_path, out_folder)
+            safe_print(u"  ✓ Exportado: {}".format(png_out))
+            count_ok += 1
+        except Exception:
+            safe_print(u"  ✗ Error exportando: {}".format(mxd_path))
+            traceback.print_exc()
+            count_err += 1
+
+    safe_print(u"\n✅ Listo. Exportados OK: {} — Con error: {}\nSalida: {}".format(count_ok, count_err, out_folder))
+
+if __name__ == "__main__":
+    main()
